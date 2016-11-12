@@ -27,10 +27,13 @@ PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat
 
 int main()
 {
-	cout << "imgLimit = " << imgLimit << endl;
+	//cout << "imgLimit = " << imgLimit << endl;
 	Mat test2 = imread("./CSL/test/a007.jpg", CV_LOAD_IMAGE_COLOR);
+	namedWindow("Image Test2", WINDOW_AUTOSIZE);
 	imshow("Image Test2", test2);
-	
+	waitKey(0);
+	return 0;
+
 	//to get the training data
 	string dir = string("./CSL/test");
 	//vector<string> files = vector<string>();
