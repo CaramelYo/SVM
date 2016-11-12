@@ -3,5 +3,9 @@ e:\program\coding\opencv-3.1.0\opencv\build\include\opencv2\core\mat.hpp(1965): 
 e:\program\coding\opencv-3.1.0\opencv\build\include\opencv2\core\persistence.hpp : warning C4819: The file contains a character that cannot be represented in the current code page (950). Save the file in Unicode format to prevent data loss
 e:\program\coding\opencv-3.1.0\opencv\build\include\opencv2\core\utility.hpp : warning C4819: The file contains a character that cannot be represented in the current code page (950). Save the file in Unicode format to prevent data loss
 e:\program\coding\opencv-3.1.0\opencv\build\include\opencv2\core\utility.hpp : warning C4819: The file contains a character that cannot be represented in the current code page (950). Save the file in Unicode format to prevent data loss
+e:\coding\machinelearning\svm\svm\svm\source.cpp(38): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+e:\coding\machinelearning\svm\svm\svm\source.cpp(57): warning C4311: 'type cast': pointer truncation from 'uchar *' to 'int'
+e:\coding\machinelearning\svm\svm\svm\source.cpp(57): warning C4302: 'type cast': truncation from 'uchar *' to 'int'
+e:\coding\machinelearning\svm\svm\svm\source.cpp(63): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
   SVM.vcxproj -> E:\Coding\MachineLearning\SVM\SVM\x64\Debug\SVM.exe
   SVM.vcxproj -> E:\Coding\MachineLearning\SVM\SVM\x64\Debug\SVM.pdb (Partial PDB)
