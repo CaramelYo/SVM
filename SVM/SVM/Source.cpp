@@ -12,19 +12,32 @@
 
 #include <opencv2/opencv.hpp>
 
+#define fileSize 102
+#define imgHeight 227
+#define imgWidth 227
+#define imgWidthLimit imgWidth * 3
+#define imgLimit imgHeight * imgWidth * 3
+
 using namespace cv;
 using namespace cv::ml;
 using namespace std;
 
-void GetFiles(string dir, vector<string> &files);
+void GetFiles(string dir, string *files); 
+PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat& compressed);
 
 int main()
 {
+	cout << "imgLimit = " << imgLimit << endl;
+	Mat test2 = imread("./CSL/test/a007.jpg", CV_LOAD_IMAGE_COLOR);
+	imshow("Image Test2", test2);
+	
+	//to get the training data
 	string dir = string("./CSL/test");
-	vector<string> files = vector<string>();
-	int imgWidth = 227, imgHeight = 227, imgChannel = 3, imgWidthLimit = imgChannel * imgWidth;
+	//vector<string> files = vector<string>();
+	string files[fileSize];
 
 	GetFiles(dir, files);
+
 	/*
 	//to output the file name
 	int fileSize = files.size();
@@ -34,36 +47,89 @@ int main()
 	}
 	*/
 
-	vector<int> labels = vector<int>();
-	vector<uchar*> trainingData = vector<uchar*>();
-	int fileSize = files.size();
+	//vector<int> labels = vector<int>();
+	int labels[fileSize];
+	//vector<uint8_t*> trainingData = vector<uint8_t*>();
+	uint8_t *trainingData[fileSize];
+	//int fileSize = files.size();
+
+	cout << "file name = " << files[5] << endl;
 
 	//to get data & labels
 	//to skip . & ..
-	for (int i = 2; i < 3; ++i)
+	for (int i = 2; i < fileSize; ++i)
 	{
+		int j = i - 2;
 		if (files[i][0] == 'a')
-		{
-			labels.push_back(1);
-		}
+			labels[j] = 1;
 		else
-		{
-			labels.push_back(-1);
-		}
+			labels[j] = -1;
 
 		Mat img = imread(dir + "/" + files[i], CV_LOAD_IMAGE_COLOR);
-		//trainingData.push_back(img.data);
+		trainingData[j] = img.data;
 
-		cout << (int)img.data[0] << endl;
-		cout << (int)img.ptr<uchar>(0, 0) << endl;
+		//cout << (int)img.data[0] << endl;
+		//cout << (int)img.ptr<uchar>(0, 0) << endl;
 	}
 
 	system("pause");
 
+	//image setting
+	//int imgWidth = 227, imgHeight = 227, imgChannel = 3, imgLimit = imgHeight * imgWidth * imgChannel;
+	//int trainingDataSize = labels.size();
+	int trainingDataSize = fileSize - 2;
 
-	int trainingDataSize = labels.size();
+	//to get the image features by pca
+	Mat trainingDataMat(trainingDataSize, imgHeight * imgWidth, CV_8UC3), compressedTrainingData;
+	uint8_t *trainingDataMatPtr = trainingDataMat.data;
 
-	//Mat trainingDataMat(trainingDataSize, imgWidth * imgHeight, CV_32FC1, trainingData);
+	//cout << "trainingDataSize = " << trainingDataSize << " training data size = " << trainingData.size() << endl;
+	//CV_Assert(trainingDataSize == trainingData.size());
+	
+	for (int i = 0; i < trainingDataSize; ++i)
+	{
+		int index = i * imgWidthLimit;
+		for (int j = 0; j < imgWidthLimit; ++j)
+		{
+			try
+			{
+				*(trainingDataMatPtr + index + j) = *(trainingData[i] + j);
+			}
+			catch (...)
+			{
+				//cerr << e.err << endl;
+				//cout << e.err << endl;
+				cout << "?";
+			}
+		}
+	}
+
+
+	//PCA pca = PCACompression(trainingData, 2, trainingData, compressedTrainingData);
+
+	//Mat trainingDataMat(trainingDataSize, imgWidth * imgHeight, CV_32FC1);
+	
+	//Mat trainingDataMat(trainingDataSize, ;
+
+	cout << "height = " << trainingDataMat.rows << " width = " << trainingDataMat.cols << endl;
+	Mat test = Mat(trainingDataMat.row(0)).reshape(0, imgHeight);
+	Mat test1 = imread("./CSL/test/a007.jpg");
+
+	/*
+	for (int i = 0; i < imgHeight; ++i)
+	{
+		for (int j = 0; j < imgWidth; ++j)
+		{
+
+		}
+	}
+	*/
+
+	//imshow("Image Test", test);
+
+	imshow("Image Test1", test1);
+	system("pause");
+	return 0;
 
 	//cout << testDataSize << endl;
 
@@ -93,7 +159,7 @@ int main()
 	//Mat labelsMat(trainingDataSize, 1, CV_32SC1, labelsArr);
 	Mat labelsMat(5, 1, CV_32SC1, labelsArr);
 	//Mat trainingDataMat(trainingDataSize, imgWidth * imgHeight, CV_32SC1, trainingDataArr);
-	Mat trainingDataMat(5, 51529, CV_32SC1, trainingDataArr);
+	//Mat trainingDataMat(5, 51529, CV_32SC1, trainingDataArr);
 	system("pause");
 
 	/*
@@ -231,7 +297,7 @@ int main()
 	return 0;
 }
 
-void GetFiles(string dir, vector<string> &files)
+void GetFiles(string dir, string *files)
 {
 	//to create directory pointer
 	DIR *dp;
@@ -245,10 +311,46 @@ void GetFiles(string dir, vector<string> &files)
 	}
 
 	//to read all file name into files
-	while ((dirp = readdir(dp)) != NULL)
-		files.push_back(string(dirp->d_name));
+	//while ((dirp = readdir(dp)) != NULL)
+	//	files.push_back(string(dirp->d_name));
+	for (int i = 0; i < fileSize; ++i)
+	{
+		if ((dirp = readdir(dp)) != NULL)
+			files[i] = string(dirp->d_name);
+	}
 
 	//to close directory pointer
 	closedir(dp);
 	return;
+}
+
+PCA PCACompression(const Mat& pcaset, int maxComponents,
+	const Mat& testset, Mat& compressed)
+{
+	//pca(input data, Mat() means that PCA engine will compute the mean vector, thr form of eigenvector in matrix, the count of componet)
+	PCA pca(pcaset, Mat(), PCA::DATA_AS_ROW, maxComponents);
+
+	// if there is no test data, just return the computed basis, ready-to-use
+	if (!testset.data)
+		return pca;
+
+	//to ensure if the cols of testset are equal to the cols of pcaset;
+	CV_Assert(testset.cols == pcaset.cols);
+
+
+	compressed.create(testset.rows, maxComponents, testset.type());
+	//Mat reconstructed;???
+
+	int rows = testset.rows;
+	for (int i = 0; i < rows; i++)
+	{
+		Mat vec = testset.row(i), coeffs = compressed.row(i), reconstructed;
+		// compress the vector, the result will be stored in the i-th row of the output matrix
+		pca.project(vec, coeffs);
+		// to reconstruct it
+		//pca.backProject(coeffs, reconstructed);
+		// to measure the error
+		//printf("%d. diff = %g\n", i, norm(vec, reconstructed, NORM_L2));
+	}
+	return pca;
 }
