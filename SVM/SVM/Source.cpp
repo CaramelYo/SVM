@@ -27,13 +27,6 @@ PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat
 
 int main()
 {
-	//cout << "imgLimit = " << imgLimit << endl;
-	Mat test2 = imread("./CSL/test/a007.jpg", CV_LOAD_IMAGE_COLOR);
-	namedWindow("Image Test2", WINDOW_AUTOSIZE);
-	imshow("Image Test2", test2);
-	waitKey(0);
-	return 0;
-
 	//to get the training data
 	string dir = string("./CSL/test");
 	//vector<string> files = vector<string>();
@@ -55,8 +48,12 @@ int main()
 	//vector<uint8_t*> trainingData = vector<uint8_t*>();
 	uint8_t *trainingData[fileSize];
 	//int fileSize = files.size();
-
-	cout << "file name = " << files[5] << endl;
+	uint8_t *a[fileSize];
+	uint8_t *aa;
+	a[20] = aa;
+	cout << a[20] << endl;
+	trainingData[102][0] = 1;
+	cout << trainingData[102][0] << endl;
 
 	//to get data & labels
 	//to skip . & ..
@@ -70,12 +67,9 @@ int main()
 
 		Mat img = imread(dir + "/" + files[i], CV_LOAD_IMAGE_COLOR);
 		trainingData[j] = img.data;
-
-		//cout << (int)img.data[0] << endl;
-		//cout << (int)img.ptr<uchar>(0, 0) << endl;
 	}
 
-	system("pause");
+	waitKey(0);
 
 	//image setting
 	//int imgWidth = 227, imgHeight = 227, imgChannel = 3, imgLimit = imgHeight * imgWidth * imgChannel;
@@ -128,10 +122,11 @@ int main()
 	}
 	*/
 
-	//imshow("Image Test", test);
+	imshow("Image Test", test);
 
 	imshow("Image Test1", test1);
-	system("pause");
+	
+	waitKey(0);
 	return 0;
 
 	//cout << testDataSize << endl;
