@@ -12,7 +12,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#define fileSize 502
+#define fileSize 802
 #define imgHeight 227
 #define imgWidth 227
 #define imgWidthLimit imgWidth * 3
@@ -24,7 +24,7 @@ using namespace cv::ml;
 using namespace std;
 
 void GetFiles(string dir, string *files); 
-PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat& compressed, Mat& reconstructed);
+PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat& compressedPcaset, Mat& compressedTestset);
 
 int main()
 {
@@ -87,11 +87,15 @@ int main()
 
 		if (trainingFiles[i][0] == 'a')
 			trainingLabels[j] = 1;
+		else if (trainingFiles[i][0] == 'b')
+			trainingLabels[j] = 2;
 		else
 			trainingLabels[j] = -1;
 
 		if (testFiles[i][0] == 'a')
-			testLabels[j] = 1;
+			testLabels[j] = 1; 
+		else if (testFiles[i][0] == 'b')
+			trainingLabels[j] = 2;
 		else
 			testLabels[j] = -1;
 
@@ -128,33 +132,33 @@ int main()
 	int trainingDataSize = fileSize - 2, testDataSize = fileSize - 2;
 
 	//to change the form of data from uint8_t* array to Mat
-	Mat trainingDataMat(trainingDataSize, imgLimit, CV_64FC1), testDataMat(testDataSize, imgLimit, CV_64FC1), compressedTestData, reconstructedTestData;
-	double *trainingDataMatPtr = (double*)trainingDataMat.data, *testDataMatPtr = (double*)testDataMat.data;
+	Mat trainingDataMat(trainingDataSize, imgLimit, CV_32FC1), testDataMat(testDataSize, imgLimit, CV_32FC1);
+	float *trainingDataMatPtr = (float*)trainingDataMat.data, *testDataMatPtr = (float*)testDataMat.data;
 
 	for (int i = 0; i < trainingDataSize; ++i)
 	{
 		int index = i * imgLimit;
 		for (int j = 0; j < imgLimit; ++j)
-			trainingDataMatPtr[index + j] = (double)trainingData[i][j];
+			trainingDataMatPtr[index + j] = (float)trainingData[i][j];
 	}
 
 	for (int i = 0; i < testDataSize; ++i)
 	{
 		int index = i * imgLimit;
 		for (int j = 0; j < imgLimit; ++j)
-			testDataMatPtr[index + j] = (double)testData[i][j];
+			testDataMatPtr[index + j] = (float)testData[i][j];
 	}
 
 	//to change the form of labels from int array to Mat
 	//Mat trainingLabelsMat(trainingDataSize, 1, CV_8SC1, trainingLabels), testLabelsMat(testDataSize, 1, CV_8SC1, testLabels);
-	Mat trainingLabelsMat(trainingDataSize, 1, CV_8SC1), testLabelsMat(testDataSize, 1, CV_8SC1);
-	uint8_t *trainingLabelsMatPtr = trainingLabelsMat.data, *testLabelsMatPtr = testLabelsMat.data;
+	Mat trainingLabelsMat(trainingDataSize, 1, CV_32S), testLabelsMat(testDataSize, 1, CV_32S);
+	int *trainingLabelsMatPtr = (int*)trainingLabelsMat.data, *testLabelsMatPtr = (int*)testLabelsMat.data;
 
 	for (int i = 0; i < trainingDataSize; ++i)
-		trainingLabelsMatPtr[i] = (uint8_t)trainingLabels[i];
+		trainingLabelsMatPtr[i] = trainingLabels[i];
 
 	for (int i = 0; i < testDataSize; ++i)
-		testLabelsMatPtr[i] = (uint8_t)testLabels[i];
+		testLabelsMatPtr[i] = testLabels[i];
 
 	/*
 	Mat test = Mat(trainingDataMat.row(99)).reshape(0, imgHeight);
@@ -173,9 +177,34 @@ int main()
 	*/
 
 	//to get the image features by pca
-	PCA pca = PCACompression(trainingDataMat, 2, testDataMat, compressedTestData, reconstructedTestData);
-	imshow("Re test", Mat(reconstructedTestData.row(1).reshape(0, imgHeight)));
+	Mat compressedTrainingDataMat, compressedTestDataMat;
+	int components = 2;
+	PCA pca = PCACompression(trainingDataMat, components, testDataMat, compressedTrainingDataMat, compressedTestDataMat);
+	normalize(compressedTrainingDataMat, compressedTrainingDataMat, 0.0, 500.0, NORM_MINMAX);
+	normalize(compressedTestDataMat, compressedTestDataMat, 0.0, 500.0, NORM_MINMAX);
+
+	/*
+	double *p = (double*)reconstructedTestData.data;
+	Mat test(imgHeight, imgWidth, CV_8UC1);
+	uint8_t *pp = test.data;
+	cout << "int = " << (int)p[255] << " uint8_t" << (uint8_t)p[255] << endl;
+
+	for (int i = 0; i < imgLimit; ++i)
+	{
+		pp[i] = (int)p[i];
+	}
+
+	for (int i = 0; i < imgLimit; ++i)
+	{
+		if (i % imgHeight == 0)
+			cout << endl;
+		
+		cout << (int)pp[i] << " ";
+	}
+	imshow("Re test", test);
 	waitKey(0);
+	*/
+
 
 	/*
 	cout << "height = " << compressedTrainingData.rows << " width = " << compressedTrainingData.cols << " type = " << compressedTrainingData.type() << endl;
@@ -217,48 +246,91 @@ int main()
 	//Mat labelsMat(5, 1, CV_32SC1, labelsArr);
 	//Mat trainingDataMat(trainingDataSize, imgWidth * imgHeight, CV_32SC1, trainingDataArr);
 	//Mat trainingDataMat(5, 51529, CV_32SC1, trainingDataArr);
-	system("pause");
+	//system("pause");
 
-	/*
+	
 	//to train the SVM
 	Ptr<SVM> svm = SVM::create();
 	svm->setType(SVM::C_SVC);
 	svm->setKernel(SVM::LINEAR);
 	svm->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 100, 1e-6));
 	cout << "go" << endl;
-	svm->train(trainingDataMat, ROW_SAMPLE, labelsMat);
+	//cout << "data row = " << compressedTrainingDataMat.rows << " data col = " << compressedTrainingDataMat.cols << " labels row = " << trainingLabelsMat.rows << " labels col = " << trainingLabelsMat.cols << endl;
+	svm->train(compressedTrainingDataMat, ROW_SAMPLE, trainingLabelsMat);
 
-	Mat img = imread("./CSL/test/a008.jpg");
-	Mat sampleMat = Mat(1, imgWidth * imgHeight, CV_32SC1, img.data);
-	float response = svm->predict(sampleMat);
-	cout << response << endl;
-	*/
+	//Mat img = imread("./CSL/test/a008.jpg");
+	//Mat sampleMat = Mat(1, imgWidth * imgHeight, CV_32SC1, img.data);
+	//Mat testMat8(1, components, CV_8UC1), testMat64(1, components, CV_32FC1);
+	Mat testMat64(1, components, CV_32FC1);
+	//uint8_t *p8 = testMat8.data, *p = compressedTestDataMat.data;
+	float *p64 = (float*)testMat64.data, *compressedTestDataMatPtr = (float*)compressedTestDataMat.data;
 
-	/*
+	for (int i = 0; i < components; ++i)
+	{
+		//p8[i] = p[i];
+		p64[i] = compressedTestDataMatPtr[i];
+	}
+
+	//cout << "testMat8 = " << (int)p8[0] << " " << (int)p8[1] << endl;
+	//cout << "testMat64 = " << p64[0] << " " << p64[1] << endl;
+	
+	//cout << "test8 = " << svm->predict(testMat8) << " test64 = " << svm->predict(testMat64) << endl;
+	//float response = svm->predict(testMat64);
+	//cout << "test64 = " << response << endl;
+
+	
 	// Show the decision regions given by the SVM
-	Mat image = Mat::zeros(500, 500, CV_8UC3);
+	int resultHeight = 500, resultWidth = 500;
+	Mat image = Mat::zeros(resultHeight, resultWidth, CV_8UC3);
 	Vec3b green(0, 255, 0), blue(255, 0, 0), red(0, 0, 255);
 
-	for (int i = 0; i < image.rows; ++i)
-		for (int j = 0; j < image.cols; ++j)
+	for (int i = 0; i < resultHeight; ++i)
+		for (int j = 0; j < resultWidth; ++j)
 		{
 			Mat sampleMat = (Mat_<float>(1, 2) << j, i);
 			float response = svm->predict(sampleMat);
 
+			if (response == 1)
+				image.at<Vec3b>(i, j) = green;
+			else if (response == 2)
+				image.at<Vec3b>(i, j) = red;
+			else if (response == -1)
+				image.at<Vec3b>(i, j) = blue;
+
+			/*
 			if (response == 0)
 				image.at<Vec3b>(i, j) = green;
 			else if (response == 1)
 				image.at<Vec3b>(i, j) = blue;
 			else if (response == 2)
 				image.at<Vec3b>(i, j) = red;
+			*/
 		}
 	// Show the training data
 	int thickness = -1;
 	int lineType = 8;
-	circle(image, Point(501, 10), 5, Scalar(0, 0, 0), thickness, lineType);
-	circle(image, Point(255, 10), 5, Scalar(255, 255, 255), thickness, lineType);
-	circle(image, Point(501, 255), 5, Scalar(255, 255, 255), thickness, lineType);
-	circle(image, Point(10, 501), 5, Scalar(255, 255, 255), thickness, lineType);
+	//circle(image, Point(501, 10), 5, Scalar(0, 0, 0), thickness, lineType);
+	//circle(image, Point(255, 10), 5, Scalar(255, 255, 255), thickness, lineType);
+	//circle(image, Point(501, 255), 5, Scalar(255, 255, 255), thickness, lineType);
+	//circle(image, Point(10, 501), 5, Scalar(255, 255, 255), thickness, lineType);
+	int testDataSize2 = testDataSize * 2;
+	for (int i = 0; i < testDataSize2; i+=2)
+	{
+		//cout << compressedTestDataMatPtr[i] << " " << compressedTestDataMatPtr[i + 1] << endl;
+		Mat sampleMat = (Mat_<float>(1, 2) << compressedTestDataMatPtr[i], compressedTestDataMatPtr[i + 1]);
+		float response = svm->predict(sampleMat);
+		Scalar s;
+
+		if (response == 1)
+			s = Scalar(255, 255, 0);
+		else if (response == 2)
+			s = Scalar(0, 255, 255);
+		else if (response == -1)
+			s = Scalar(255, 0, 255);
+
+		circle(image, Point(compressedTestDataMatPtr[i], compressedTestDataMatPtr[i + 1]), 1, s, thickness, lineType);
+	}
+	
 	// Show support vectors
 	thickness = 2;
 	lineType = 8;
@@ -271,7 +343,7 @@ int main()
 	imwrite("result.png", image);        // save the image
 	imshow("SVM Simple Example", image); // show it to the user
 	waitKey(0);
-	*/
+	
 
 
 	/*
@@ -381,7 +453,8 @@ void GetFiles(string dir, string *files)
 	return;
 }
 
-PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat& compressed, Mat& reconstructed)
+//PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat& compressedPcaset, Mat& compressedTestset, Mat& reconstructedTestset)
+PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat& compressedPcaset, Mat& compressedTestset)
 {
 	//pca(input data, Mat() means that PCA engine will compute the mean vector, thr form of eigenvector in matrix, the count of componet)
 	PCA pca(pcaset, Mat(), PCA::DATA_AS_ROW, maxComponents);
@@ -393,22 +466,32 @@ PCA PCACompression(const Mat& pcaset, int maxComponents, const Mat& testset, Mat
 	//to ensure if the cols of testset are equal to the cols of pcaset;
 	CV_Assert(testset.cols == pcaset.cols);
 
+	compressedPcaset.create(pcaset.rows, maxComponents, CV_32FC1);
+	compressedTestset.create(testset.rows, maxComponents, CV_32FC1);
+	//reconstructedTestset.create(testset.rows, testset.cols, CV_64FC1);
 
-	compressed.create(testset.rows, maxComponents, CV_64FC1);
-	reconstructed.create(testset.rows, testset.cols, testset.type());
-	//Mat reconstructed;???
+	//to get the new training data
+	int rows = pcaset.rows;
+	for (int i = 0; i < rows; ++i)
+	{
+		Mat vec = pcaset.row(i), coeffs = compressedPcaset.row(i);
+		pca.project(vec, coeffs);
+	}
 
-	int rows = testset.rows;
+	//to get the new test data
+	rows = testset.rows;
 	for (int i = 0; i < rows; i++)
 	{
-		Mat vec = testset.row(i), coeffs = compressed.row(i), re = reconstructed.row(i);
+		//Mat vec = testset.row(i), coeffs = compressedTestset.row(i), re = reconstructedTestset.row(i);
+		Mat vec = testset.row(i), coeffs = compressedTestset.row(i);
 		// compress the vector, the result will be stored in the i-th row of the output matrix
 		pca.project(vec, coeffs);
 		// to reconstruct it
-		normalize(pca.backProject(coeffs).row(0), re);
+		//normalize(pca.backProject(coeffs).row(0), re, 0, 255, NORM_MINMAX);
 		//normalize()
 		// to measure the error
-		cout << i << ". diff = " << norm(vec, re, NORM_L2) << endl;
+		//cout << i << ". diff = " << norm(vec, re, NORM_L2) << endl;
 	}
+
 	return pca;
 }
