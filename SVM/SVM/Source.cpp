@@ -31,69 +31,6 @@ PCA PCACompression(const Mat& pcaset, int maxComponents, Mat& compressedPcaset);
 
 int main()
 {
-	/*
-	fstream fp;
-	//fp.open("pca.txt", ios::out);
-	fp.open("pca.txt", ios::in);
-	if (!fp)
-	{
-		cout << "Fail to open file" << endl;
-		return 0;
-	}
-
-	
-	Mat test0(50, 50, CV_32FC1);
-	float *p = (float*)test0.data;
-	
-	//to write
-	for (int i = 0; i < 50; ++i)
-	{
-		float a = i;
-		int index = i * 50;
-		for (int j = 0; j < 50; ++j)
-		{
-			a += j * 0.01;
-			p[index + j] = a;
-		}
-	}
-
-	for (int i = 0; i < 50; ++i)
-	{
-		int index = i * 50;
-		for (int j = 0; j < 50; ++j)
-		{
-			fp << p[index + j]  << " " << endl;
-		}
-	}
-	
-	//to read
-	for (int i = 0; i < 50; ++i)
-	{
-		int index = i * 50;
-		for (int j = 0; j < 50; ++j)
-		{
-			fp >> p[index + j];
-		}
-	}
-
-	fp.close();
-	
-	for (int i = 0; i < 50; ++i)
-	{
-		int index = i * 50;
-		for (int j = 0; j < 50; ++j)
-		{
-			cout << p[index + j] << " ";
-		}
-
-		cout << endl;
-	}
-
-	system("pause");
-
-	return 0;
-	*/
-
 	//to get the training data
 	string dir = string("./CSL/training");
 	string *files = new string[trainingFileSize];
@@ -113,7 +50,7 @@ int main()
 	{
 		int j = i - 2;
 
-		trainingLabels[j] = files[i][0] - 96;
+		trainingLabels[j] = files[i][0] - 97;
 
 		//is the original image needed?
 		//Mat training = imread(trainingDir + "/" + trainingFiles[i], CV_LOAD_IMAGE_COLOR), test = imread(testDir + "/" + testFiles[i], CV_LOAD_IMAGE_COLOR);
@@ -160,7 +97,7 @@ int main()
 	for(int i = 0; i < trainingDataSize; ++i)
 		delete[] trainingData[i];
 
-	
+	/*
 	//to get the features by pca
 	Mat compressedTrainingDataMat;
 	int components = 26;
@@ -169,6 +106,7 @@ int main()
 	trainingDataMat.release();
 	
 	//return 0;
+	*/
 
 	//to get test data
 	dir = string("./CSL/test");
@@ -187,7 +125,7 @@ int main()
 	{
 		int j = i - 2;
 
-		testLabels[j] = files[i][0] - 96;
+		testLabels[j] = files[i][0] - 97;
 
 		//to use grayscale
 		Mat test = imread(dir + "/" + files[i], CV_LOAD_IMAGE_GRAYSCALE);
@@ -202,6 +140,7 @@ int main()
 		test.release();
 	}
 
+	
 	//to change the form of data from uint8_t* array to CV_32FC1 Mat
 	//for pca and svm, the type of data matrix must be CV_32FC1  **important
 	Mat testDataMat(testDataSize, imgLimit, CV_32FC1);
@@ -215,7 +154,7 @@ int main()
 		delete[] testData[i];
 	}
 
-	
+	/*
 	//to get the features by pca
 	Mat compressedTestDataMat;
 	int testRows = testDataMat.rows;
@@ -230,6 +169,7 @@ int main()
 	}
 
 	testDataMat.release();
+	
 	
 	//to write to a file
 	fstream fp;
@@ -261,7 +201,7 @@ int main()
 	}
 
 	fp.close();
-
+	*/
 
 	//to change the form of labels from int array to CV_32S Mat
 	//for svm, the type of labels matrix must be CV_32S  **important (?)
@@ -279,12 +219,12 @@ int main()
 
 	
 	//to ensure that the values are between 0 and 500  (legal?)
-	normalize(compressedTrainingDataMat, compressedTrainingDataMat, 0.0, 500.0, NORM_MINMAX);
-	normalize(compressedTestDataMat, compressedTestDataMat, 0.0, 500.0, NORM_MINMAX);
+	//normalize(compressedTrainingDataMat, compressedTrainingDataMat, 0.0, 500.0, NORM_MINMAX);
+	//normalize(compressedTestDataMat, compressedTestDataMat, 0.0, 500.0, NORM_MINMAX);
 	
 
 	//to set some variable for svm
-	int resultHeight = 500, resultWidth = 500, resultChannel = 3, resultLimit = resultWidth * resultChannel;
+	//int resultHeight = 500, resultWidth = 500, resultChannel = 3, resultLimit = resultWidth * resultChannel;
 	
 	/*
 	//the color array  **bgr
@@ -306,15 +246,7 @@ int main()
 
 	//		prediction groundTrue
 	int confusion[26][26]{ 0 };
-
-	for (int i = 0; i < 26; ++i)
-	{
-		for (int j = 0; j < 26; ++j)
-		{
-			if (confusion[i][j] != 0)
-				cout << i << " " << j << "is not 0" << endl;
-		}
-	}
+	float precision[26], recall[26];
 
 	//to train the SVM
 	Ptr<SVM> svm = SVM::create();
@@ -322,8 +254,8 @@ int main()
 	svm->setKernel(SVM::LINEAR);
 	svm->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 100, 1e-6));
 	cout << "svm training" << endl;
-	svm->train(compressedTrainingDataMat, ROW_SAMPLE, trainingLabelsMat);
-	//svm->train(trainingDataMat, ROW_SAMPLE, trainingLabelsMat);
+	//svm->train(compressedTrainingDataMat, ROW_SAMPLE, trainingLabelsMat);
+	svm->train(trainingDataMat, ROW_SAMPLE, trainingLabelsMat);
 
 	//Mat testMat64(1, components, CV_32FC1);
 	//float *p64 = (float*)testMat64.data, *compressedTestDataMatPtr = (float*)compressedTestDataMat.data;
@@ -359,20 +291,22 @@ int main()
 	//to see the prediction
 	for (int i = 0; i < testDataSize; ++i)
 	{
-		int j = i * components;
+		int j = i * imgLimit;
 
 		//the type mush be float
-		Mat sampleMat(1, components, CV_32FC1);
+		Mat sampleMat(1, imgLimit, CV_32FC1);
 		//Mat sampleMat = (Mat_<float>(1, 2) << testDataMatPtr[j], testDataMatPtr[j + 1]);
 		float *sampleMatPtr = (float*)sampleMat.data;
 
-		for (int k = 0; k < components; ++k)
+		for (int k = 0; k < imgLimit; ++k)
 		{
-			sampleMatPtr[k] = compressedTestDataMatPtr[j + k];
+			//sampleMatPtr[k] = compressedTestDataMatPtr[j + k];
+			sampleMatPtr[k] = testDataMatPtr[j + k];
 		}
 
 		float response = svm->predict(sampleMat);
 		//Scalar s;
+		//cout << response << " " << (int)response << " " << testLabelsMatPtr[i] << endl;
 
 		//to count the result
 		++confusion[(int)response][testLabelsMatPtr[i]];
@@ -397,7 +331,16 @@ int main()
 	}
 
 	for (int i = 0; i < 26; ++i)
-		cout << 'a' + i << " " << endl;
+		cout << (char)('a' + i) << " ";
+	cout << endl;
+
+	fstream fp;
+	fp.open("confusion.txt", ios::out);
+	if (!fp)
+	{
+		cout << "File cannot open" << endl;
+		system("pause");
+	}
 
 	//to show the confusion data
 	for (int i = 0; i < 26; ++i)
@@ -405,9 +348,76 @@ int main()
 		for (int j = 0; j < 26; ++j)
 		{
 			cout << confusion[i][j] << " ";
+			fp << confusion[i][j] << " ";
 		}
 		cout << endl;
+		fp << endl;
 	}
+
+	fp.close();
+
+	fp.open("precision.txt", ios::out);
+	if (!fp)
+	{
+		cout << "File cannot open" << endl;
+		system("pause");
+	}
+
+	//to calculate each precision
+	cout << "precision : " << endl;
+	for (int i = 0; i < 26; ++i)
+	{
+		precision[i] = 0.0;
+		int sum = 0;
+		for (int j = 0; j < 26; ++j)
+		{
+			sum += confusion[i][j];
+		}
+
+		if(sum >= 1 && confusion[i][i] != 0)
+			precision[i] = confusion[i][i] / sum;
+
+		cout << precision[i] << " ";
+		fp << precision[i] << endl;
+		if (i == 12)
+		{
+			cout << endl;
+		}
+	}
+	cout << endl;
+	fp.close();
+
+	fp.open("recall.txt", ios::out);
+	if (!fp)
+	{
+		cout << "File cannot open" << endl;
+		system("pause");
+	}
+
+	//to calculate the recall
+	cout << "recall : " << endl;
+	for (int i = 0; i < 26; ++i)
+	{
+		recall[i] = 0.0;
+		int sum = 0;
+		for (int j = 0; j < 26; ++j)
+		{
+			sum += confusion[j][i];
+		}
+
+		if (sum >= 1 && confusion[i][i] != 0)
+			recall[i] = confusion[i][i] / sum;
+
+		cout << recall[i] << " ";
+		fp << recall[i] << endl;
+		if (i == 12)
+		{
+			cout << endl;
+		}
+	}
+
+	cout << endl;
+	fp.close();
 
 	/*
 	// Show support vectors
@@ -453,8 +463,8 @@ int main()
 		svm->setKernel(kernel);
 		svm->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, maxIter, 1e-6));
 		cout << "svm training" << endl;
-		svm->train(compressedTrainingDataMat, ROW_SAMPLE, trainingLabelsMat);
-		//svm->train(trainingDataMat, ROW_SAMPLE, trainingLabelsMat);
+		//svm->train(compressedTrainingDataMat, ROW_SAMPLE, trainingLabelsMat);
+		svm->train(trainingDataMat, ROW_SAMPLE, trainingLabelsMat);
 
 		//Mat testMat64(1, components, CV_32FC1);
 		//float *p64 = (float*)testMat64.data, *compressedTestDataMatPtr = (float*)compressedTestDataMat.data;
@@ -490,19 +500,19 @@ int main()
 		//to see the prediction
 		for (int i = 0; i < testDataSize; ++i)
 		{
-			int j = i * components;
+			int j = i * imgLimit;
 
 			//the type mush be float
 			//Mat sampleMat = (Mat_<float>(1, 2) << compressedTestDataMatPtr[j], compressedTestDataMatPtr[j + 1]);
 			//Mat sampleMat = (Mat_<float>(1, 2) << testDataMatPtr[j], testDataMatPtr[j + 1]);
 			
-			Mat sampleMat(1, components, CV_32FC1);
+			Mat sampleMat(1, imgLimit, CV_32FC1);
 			//Mat sampleMat = (Mat_<float>(1, 2) << testDataMatPtr[j], testDataMatPtr[j + 1]);
 			float *sampleMatPtr = (float*)sampleMat.data;
 
-			for (int k = 0; k < components; ++k)
+			for (int k = 0; k < imgLimit; ++k)
 			{
-				sampleMatPtr[k] = compressedTestDataMatPtr[j + k];
+				sampleMatPtr[k] = testDataMatPtr[j + k];
 			}
 			
 			float response = svm->predict(sampleMat);
@@ -530,7 +540,16 @@ int main()
 		}
 
 		for (int i = 0; i < 26; ++i)
-			cout << 'a' + i << " " << endl;
+			cout << (char)('a' + i) << " ";
+		cout << endl;
+
+		fstream fp;
+		fp.open("confusion.txt", ios::out);
+		if (!fp)
+		{
+			cout << "File cannot open" << endl;
+			system("pause");
+		}
 
 		//to show the confusion data
 		for (int i = 0; i < 26; ++i)
@@ -538,9 +557,76 @@ int main()
 			for (int j = 0; j < 26; ++j)
 			{
 				cout << confusion[i][j] << " ";
+				fp << confusion[i][j] << " ";
 			}
 			cout << endl;
+			fp << endl;
 		}
+
+		fp.close();
+
+		fp.open("precision.txt", ios::out);
+		if (!fp)
+		{
+			cout << "File cannot open" << endl;
+			system("pause");
+		}
+
+		//to calculate each precision
+		cout << "precision : " << endl;
+		for (int i = 0; i < 26; ++i)
+		{
+			precision[i] = 0.0;
+			int sum = 0;
+			for (int j = 0; j < 26; ++j)
+			{
+				sum += confusion[i][j];
+			}
+
+			if (sum >= 1 && confusion[i][i] != 0)
+				precision[i] = confusion[i][i] / sum;
+
+			cout << precision[i] << " ";
+			fp << precision[i] << endl;
+			if (i == 12)
+			{
+				cout << endl;
+			}
+		}
+		cout << endl;
+		fp.close();
+
+		fp.open("recall.txt", ios::out);
+		if (!fp)
+		{
+			cout << "File cannot open" << endl;
+			system("pause");
+		}
+
+		//to calculate the recall
+		cout << "recall : " << endl;
+		for (int i = 0; i < 26; ++i)
+		{
+			recall[i] = 0.0;
+			int sum = 0;
+			for (int j = 0; j < 26; ++j)
+			{
+				sum += confusion[j][i];
+			}
+
+			if (sum >= 1 && confusion[i][i] != 0)
+				recall[i] = confusion[i][i] / sum;
+
+			cout << recall[i] << " ";
+			fp << recall[i] << endl;
+			if (i == 12)
+			{
+				cout << endl;
+			}
+		}
+
+		cout << endl;
+		fp.close();
 
 		/*
 		// Show support vectors
